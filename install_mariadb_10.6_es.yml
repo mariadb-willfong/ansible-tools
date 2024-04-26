@@ -51,6 +51,27 @@
           - MariaDB-server
         state: present
 
+    - name: Configure MariaDB
+      ansible.builtin.copy:
+        dest: "/etc/my.cnf"
+        content: |
+          [server]
+          log_error = /var/log/mariadb.err
+        force: yes
+        backup: yes
+
+    - name: Create mariadb.err file if it does not exist
+      ansible.builtin.file:
+        path: /var/log/mariadb.err
+        state: touch
+
+    - name: Set ownership and permissions for mariadb.err file
+      ansible.builtin.file:
+        path: /var/log/mariadb.err
+        owner: mysql
+        group: mysql
+        mode: "0644"
+
     - name: Start MariaDB
       ansible.builtin.systemd:
         name: mariadb
