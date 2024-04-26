@@ -1,0 +1,22 @@
+---
+- name: Setup EC2 instances with specific software
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Download MariaDB setup script
+      ansible.builtin.get_url:
+        url: "https://dlm.mariadb.com/3/MariaDB/mariadb_repo_setup"
+        dest: "/tmp/mariadb_repo_setup"
+        mode: "0755"
+
+    - name: Run MariaDB setup script
+      become: yes
+      ansible.builtin.shell:
+        cmd: "/tmp/mariadb_repo_setup --os-type=ubuntu --os-version=jammy --mariadb-server-version=mariadb-10.6"
+        creates: "/etc/yum.repos.d/MariaDB.repo"
+
+    - name: Install MariaDB on MariaDB nodes
+      become: yes
+      ansible.builtin.apt:
+        name: Mariadb-Server
+        state: present
