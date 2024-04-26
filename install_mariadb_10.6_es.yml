@@ -1,0 +1,58 @@
+---
+# https://mariadb.com/docs/server/deploy/deployment-methods/repo/
+
+- name: Install 10.6 Enterprise Per Documentation
+  hosts: db106
+  vars:
+    - setup_script_checksum: f8eb9c1b59ccfd979d27e39798d2f2a98447dd29e2149ce92bf606aab4493ad9
+  vars_files:
+    - enterprise_token.yml
+  gather_facts: yes
+  tasks:
+    - name: Enterprise Download Token
+      ansible.builtin.debug:
+        msg: "{{ download_token }}"
+
+    - name: Ensure packages are installed
+      ansible.builtin.yum:
+        name:
+          - wget
+        state: present
+
+    - name: Download MariaDB setup script
+      ansible.builtin.get_url:
+        url: "https://dlm.mariadb.com/enterprise-release-helpers/mariadb_es_repo_setup"
+        dest: "/tmp/mariadb_es_repo_setup"
+        mode: "0755"
+
+    - name: Get checksum of the setup script
+      ansible.builtin.stat:
+        path: "/tmp/mariadb_es_repo_setup"
+        get_checksum: yes
+        checksum_algorithm: sha256
+      register: result
+
+    - name: Check if checksums match
+      assert:
+        that:
+          - result.stat.checksum == setup_script_checksum
+        fail_msg: "Checksum mismatch, file may be corrupted or altered."
+        success_msg: "Checksum verified, file is intact."
+
+    - name: Run MariaDB setup script
+      become: yes
+      ansible.builtin.shell:
+        cmd: '/tmp/mariadb_es_repo_setup --token="{{ download_token }}" --apply'
+        creates: "/etc/yum.repos.d/MariaDB.repo"
+
+    - name: Install MariaDB Packages
+      ansible.builtin.yum:
+        name:
+          - MariaDB-server
+        state: present
+
+    - name: Start MariaDB
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+        enabled: yes
