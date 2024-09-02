@@ -1,0 +1,102 @@
+---
+- name: Install MariaDB, Set Up GTID-based Replication, and Configure Firewall
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Check if firewalld is active
+      ansible.builtin.command: firewall-cmd --state
+      register: firewalld_state
+      changed_when: false
+      failed_when: false
+
+    - name: Configure firewall for MariaDB if active
+      block:
+        - name: Allow MariaDB through firewall
+          ansible.builtin.firewalld:
+            port: 3306/tcp
+            permanent: yes
+            state: enabled
+          register: firewall_update
+
+        - name: Reload firewall
+          ansible.builtin.command: firewall-cmd --reload
+          when: firewall_update.changed
+      when: firewalld_state.rc == 0
+
+    - name: Download MariaDB repo setup script
+      ansible.builtin.get_url:
+        url: https://dlm.mariadb.com/3/MariaDB/mariadb_repo_setup
+        dest: /tmp/mariadb_repo_setup
+        mode: "0755"
+
+    - name: Execute MariaDB repo setup script
+      ansible.builtin.command: /tmp/mariadb_repo_setup --mariadb-server-version={{ mariadb_version }}
+      args:
+        creates: /etc/yum.repos.d/MariaDB.repo
+
+    - name: Install MariaDB Server
+      ansible.builtin.package:
+        name: MariaDB-server
+        state: present
+
+    - name: Configure MariaDB for GTID replication
+      ansible.builtin.template:
+        src: replication.cnf.j2
+        dest: /etc/my.cnf
+      notify: Restart MariaDB
+
+    - name: Start and enable MariaDB service
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    # - name: Set MariaDB root password
+    #   ansible.builtin.command: >
+    #     mysqladmin -u root password "{{ mariadb_root_password }}"
+    #   ignore_errors: yes
+
+    - name: Configure replication for primary
+      when: inventory_hostname in groups['primary']
+      block:
+        - name: Create replication user on primary
+          ansible.builtin.command: >
+            mysql -u root -e
+            "CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY '{{ replication_password }}';
+            GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';"
+
+    - name: Configure replication for replica
+      when: inventory_hostname in groups['replica']
+      block:
+        - name: Configure replica to use GTID
+          ansible.builtin.command: >
+            mysql -u root -e
+            "CHANGE MASTER TO
+            MASTER_HOST='{{ hostvars[groups['primary'][0]]['ansible_host'] }}',
+            MASTER_USER='repl_user',
+            MASTER_PASSWORD='{{ replication_password }}',
+            MASTER_USE_GTID=current_pos;"
+
+        - name: Start replica
+          ansible.builtin.command: >
+            mysql -u root -e "START REPLICA;"
+
+        - name: Sleep to allow replicas time to connect
+          ansible.builtin.pause:
+            seconds: 5
+
+        - name: Check replica status
+          ansible.builtin.command: >
+            mysql -u root -e "SHOW REPLICA STATUS\G"
+          register: replica_status
+
+        - name: Display replica status
+          ansible.builtin.debug:
+            var: replica_status.stdout_lines
+
+  handlers:
+    - name: Restart MariaDB
+      ansible.builtin.systemd:
+        name: mariadb
+        state: restarted

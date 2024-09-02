@@ -1,0 +1,40 @@
+---
+- name: Check Firewall Status on RHEL Servers
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check firewalld status
+      ansible.builtin.command: systemctl is-active firewalld
+      register: firewalld_status
+      changed_when: false
+      failed_when: false
+
+    - name: Check iptables rules
+      ansible.builtin.command: iptables -L
+      register: iptables_rules
+      changed_when: false
+      failed_when: false
+
+    - name: Check nftables ruleset
+      ansible.builtin.command: nft list ruleset
+      register: nftables_ruleset
+      changed_when: false
+      failed_when: false
+
+    - name: Display firewall status
+      ansible.builtin.debug:
+        msg:
+          - "Firewalld status: {{ 'Active' if firewalld_status.rc == 0 else 'Inactive' }}"
+          - "IPTables rules: {{ 'Present' if iptables_rules.stdout_lines | length > 0 else 'Not present' }}"
+          - "NFTables rules: {{ 'Present' if nftables_ruleset.stdout_lines | length > 0 else 'Not present' }}"
+
+    - name: Summarize firewall status
+      ansible.builtin.set_fact:
+        firewall_active: >-
+          {{ firewalld_status.rc == 0 or 
+             iptables_rules.stdout_lines | length > 0 or 
+             nftables_ruleset.stdout_lines | length > 0 }}
+
+    - name: Report firewall status
+      ansible.builtin.debug:
+        msg: "Firewall is {{ 'active' if firewall_active else 'not active' }} on {{ inventory_hostname }}"
