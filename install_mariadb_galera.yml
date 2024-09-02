@@ -1,0 +1,99 @@
+---
+- name: Setup MariaDB Galera Cluster
+  hosts: galera_cluster
+  become: yes
+  vars:
+    mariadb_version: "10.11"
+    cluster_name: "{{ galera_cluster_name }}"
+    wsrep_cluster_address: "gcomm://{% for host in groups['galera_cluster'] %}{{ hostvars[host]['ansible_host'] }}{% if not loop.last %},{% endif %}{% endfor %}"
+
+  tasks:
+    - name: Check if firewalld is active
+      ansible.builtin.command: firewall-cmd --state
+      register: firewalld_state
+      changed_when: false
+      failed_when: false
+
+    - name: Configure firewall for MariaDB Galera if active
+      block:
+        - name: Allow MariaDB through firewall
+          ansible.builtin.firewalld:
+            port: "{{ item }}"
+            permanent: yes
+            state: enabled
+          loop:
+            - 3306/tcp
+            - 4567/tcp
+            - 4568/tcp
+            - 4444/tcp
+          register: firewall_update
+
+        - name: Reload firewall
+          ansible.builtin.command: firewall-cmd --reload
+          when: firewall_update.changed
+      when: firewalld_state.rc == 0
+
+    - name: Download MariaDB repo setup script
+      ansible.builtin.get_url:
+        url: https://dlm.mariadb.com/3/MariaDB/mariadb_repo_setup
+        dest: /tmp/mariadb_repo_setup
+        mode: "0755"
+
+    - name: Execute MariaDB repo setup script
+      ansible.builtin.command: /tmp/mariadb_repo_setup --mariadb-server-version={{ mariadb_version }}
+      args:
+        creates: /etc/yum.repos.d/MariaDB.repo
+
+    - name: Install MariaDB Galera packages
+      ansible.builtin.package:
+        name:
+          - MariaDB-server
+          - MariaDB-client
+          - galera
+          - MariaDB-backup
+        state: present
+
+    - name: Create MariaDB configuration file
+      ansible.builtin.template:
+        src: galera.cnf.j2
+        dest: /etc/my.cnf
+        mode: "0644"
+
+- name: Bootstrap Galera Cluster
+  hosts: "{{ groups['galera_cluster'][0] }}"
+  become: yes
+  tasks:
+    - name: Stop MariaDB on first node
+      ansible.builtin.service:
+        name: mariadb
+        state: stopped
+
+    - name: Bootstrap Galera Cluster
+      ansible.builtin.command: galera_new_cluster
+      args:
+        creates: /var/lib/mysql/grastate.dat
+
+    - name: Create mariabackup user on the first node
+      ansible.builtin.command: >
+        mysql -u root -e
+        "CREATE USER IF NOT EXISTS 'mariabackup'@'localhost' IDENTIFIED BY '{{ mariabackup_password }}';
+        GRANT RELOAD,PROCESS,LOCK TABLES,REPLICATION CLIENT ON *.* TO 'mariabackup'@'localhost';"
+
+- name: Start MariaDB on remaining nodes
+  hosts: galera_cluster
+  serial: 1
+  become: yes
+  tasks:
+    - name: Start MariaDB service
+      ansible.builtin.service:
+        name: mariadb
+        state: started
+      when: inventory_hostname != groups['galera_cluster'][0]
+
+    - name: Wait for MariaDB to be ready
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 3306
+        state: started
+        timeout: 300
+      when: inventory_hostname != groups['galera_cluster'][0]

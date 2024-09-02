@@ -1,0 +1,24 @@
+[mysqld]
+wsrep_on=ON
+wsrep_cluster_name="{{ cluster_name }}"
+wsrep_provider=/usr/lib64/galera-4/libgalera_smm.so
+wsrep_cluster_address="{{ wsrep_cluster_address }}"
+wsrep_node_name='{{ inventory_hostname }}'
+wsrep_node_address='{{ ansible_host }}'
+binlog_format=row
+default_storage_engine=InnoDB
+innodb_autoinc_lock_mode=2
+wsrep_sst_method=mariabackup
+wsrep_sst_auth="mariabackup:{{ mariabackup_password }}"
+
+# Other recommended settings
+innodb_buffer_pool_size=122M
+innodb_flush_log_at_trx_commit=0
+innodb_lock_wait_timeout=50
+innodb_log_file_size=48M
+query_cache_size=0
+query_cache_type=0
+sync_binlog=0
+
+# Allow server to accept connections on all interfaces.
+bind-address=0.0.0.0
