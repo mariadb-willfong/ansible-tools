@@ -2,7 +2,7 @@
 
 Using Ansible to automate standardized processes for our day to day work.
 
-** Warning: Ansible does not support Windows natively **
+**Warning: Ansible does not support Windows natively**
 
 ## Requirements and Assumptions
 
@@ -63,29 +63,35 @@ replication_password=repl_pass
 
 ## Enterprise Download Token
 
-Create a file called `enterprise_token.yml` and include your token:
+If you need to use the Enterprise Repo, please include your token into a file called `enterprise_token.yml`. It will not be commited into the repository due to `.gitignore`.
+
+Example format:
 
 ```
 download_token: c48...e42
 ```
 
-## `shutdown.yml`
+## Scripts Overview
+
+These are the base playbooks. For ticket-specific tests, please create your own playbook. If you want to make any changes to these playbooks, please file a pull request.
+
+#### `shutdown.yml`
 
 This shutdowns all the VMs in the specified inventory file. This is used when we need to re-create the VM from scratch.
 
-## `uninstall_mariadb.yml`
+#### `uninstall_mariadb.yml`
 
 This should remove everything related to MariaDB for all hosts in the inventory file. This should ensure the VM is a "fresh start". It does not need to revert OS level settings, like firewall or hostname changes.
 
-## `install_mariadb_async.yml`
+#### `install_mariadb_async.yml`
 
 Install a 2-node async replication cluster with GTID.
 
-## `install_mariadb_galera.yml`
+#### `install_mariadb_galera.yml`
 
 Install a 3-node Galera cluster.
 
-## `install_mariadb_10.6_es.yml`
+#### `install_mariadb_10.6_es.yml`
 
 WORK IN PROGRESS
 
