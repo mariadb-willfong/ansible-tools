@@ -22,7 +22,7 @@
       ignore_errors: true
       when: "'mariadb' in ansible_facts.services"
 
-    - name: Remove MariaDB packages
+    - name: Remove packages
       ansible.builtin.yum:
         name: "{{ item }}"
         state: absent
@@ -32,6 +32,7 @@
         - MariaDB-common
         - MariaDB-compat
         - sysbench
+        - epel-release
       ignore_errors: true
 
     - name: Remove MariaDB data and configuration files
@@ -41,6 +42,7 @@
       loop:
         - /var/lib/mysql
         - /etc/my.cnf
+        - /root/.bash_history
       ignore_errors: true
 
     - name: Get list of repo files
@@ -54,14 +56,14 @@
         path: "{{ item.path }}"
         state: absent
       loop: "{{ repo_files.files }}"
-      when: "'rocky-' not in item.path"
+      when: "'rocky' not in item.path"
 
     - name: Clean yum cache
       ansible.builtin.command:
         cmd: yum clean all
       changed_when: false
 
-    - name: Reboot connected servers
+    - name: Reboot connected server
       ansible.builtin.reboot:
         reboot_timeout: 0
       ignore_errors: true
