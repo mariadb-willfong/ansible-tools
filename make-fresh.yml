@@ -1,0 +1,67 @@
+---
+- name: Uninstall MariaDB and remove associated files
+  hosts: all
+  become: yes
+  ignore_unreachable: true
+  tasks:
+    - name: Update hostname
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Update /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.0\.1[ \t]+localhost'
+        line: "127.0.0.1 localhost {{ inventory_hostname }}"
+        state: present
+
+    - name: Ensure MariaDB service is stopped
+      ansible.builtin.systemd:
+        name: mariadb
+        state: stopped
+      ignore_errors: true
+      when: "'mariadb' in ansible_facts.services"
+
+    - name: Remove MariaDB packages
+      ansible.builtin.yum:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - MariaDB-server
+        - MariaDB-client
+        - MariaDB-common
+        - MariaDB-compat
+        - sysbench
+      ignore_errors: true
+
+    - name: Remove MariaDB data and configuration files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/mysql
+        - /etc/my.cnf
+      ignore_errors: true
+
+    - name: Get list of repo files
+      ansible.builtin.find:
+        paths: /etc/yum.repos.d/
+        patterns: "*.repo"
+      register: repo_files
+
+    - name: Remove non-rocky repositories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ repo_files.files }}"
+      when: "'rocky-' not in item.path"
+
+    - name: Clean yum cache
+      ansible.builtin.command:
+        cmd: yum clean all
+      changed_when: false
+
+    - name: Reboot connected servers
+      ansible.builtin.reboot:
+        reboot_timeout: 0
+      ignore_errors: true

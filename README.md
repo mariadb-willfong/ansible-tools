@@ -79,9 +79,9 @@ These are the base playbooks. For ticket-specific tests, please create your own 
 
 This shutdowns all the VMs in the specified inventory file. This is used when we need to re-create the VM from scratch.
 
-#### `uninstall_mariadb.yml`
+#### `make-fresh.yml`
 
-This should remove everything related to MariaDB for all hosts in the inventory file. This should ensure the VM is a "fresh start". It does not need to revert OS level settings, like firewall or hostname changes.
+This playbook resets the VM to the original state. If we make any changes to the VMs via the playbooks, we should update this script to remove it.
 
 #### `install_mariadb_async.yml`
 
