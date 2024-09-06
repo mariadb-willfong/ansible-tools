@@ -1,11 +1,11 @@
 ---
 - name: Setup MariaDB Galera Cluster
-  hosts: galera_cluster
+  hosts: db
   become: yes
   vars:
     mariadb_version: "10.11"
     cluster_name: "{{ galera_cluster_name }}"
-    wsrep_cluster_address: "gcomm://{% for host in groups['galera_cluster'] %}{{ hostvars[host]['ansible_host'] }}{% if not loop.last %},{% endif %}{% endfor %}"
+    wsrep_cluster_address: "gcomm://{% for host in groups['db'] %}{{ hostvars[host]['ansible_host'] }}{% if not loop.last %},{% endif %}{% endfor %}"
 
   tasks:
     - name: Update hostname
@@ -71,7 +71,7 @@
         mode: "0644"
 
 - name: Bootstrap Galera Cluster
-  hosts: "{{ groups['galera_cluster'][0] }}"
+  hosts: "{{ groups['db'][0] }}"
   become: yes
   tasks:
     - name: Stop MariaDB on first node
@@ -91,7 +91,7 @@
         GRANT RELOAD,PROCESS,LOCK TABLES,REPLICATION CLIENT ON *.* TO 'mariabackup'@'localhost';"
 
 - name: Start MariaDB on remaining nodes
-  hosts: galera_cluster
+  hosts: db
   serial: 1
   become: yes
   tasks:
@@ -99,7 +99,7 @@
       ansible.builtin.service:
         name: mariadb
         state: started
-      when: inventory_hostname != groups['galera_cluster'][0]
+      when: inventory_hostname != groups['db'][0]
 
     - name: Wait for MariaDB to be ready
       ansible.builtin.wait_for:
@@ -107,4 +107,4 @@
         port: 3306
         state: started
         timeout: 300
-      when: inventory_hostname != groups['galera_cluster'][0]
+      when: inventory_hostname != groups['db'][0]
