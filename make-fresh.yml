@@ -31,8 +31,10 @@
         - MariaDB-client
         - MariaDB-common
         - MariaDB-compat
+        - MariaDB-backup
         - sysbench
         - epel-release
+        - galera
       ignore_errors: true
 
     - name: Remove MariaDB data and configuration files
@@ -62,8 +64,3 @@
       ansible.builtin.command:
         cmd: yum clean all
       changed_when: false
-
-    - name: Reboot connected server
-      ansible.builtin.reboot:
-        reboot_timeout: 0
-      ignore_errors: true
