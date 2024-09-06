@@ -1,22 +1,11 @@
 ---
 - name: Sysbench against MariaDB Async Replication
-  hosts: all
+  hosts: async
   become: yes
 
   tasks:
-    - name: Update hostname
-      ansible.builtin.hostname:
-        name: "{{ inventory_hostname }}"
-
-    - name: Update /etc/hosts
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        regexp: '^127\.0\.0\.1[ \t]+localhost'
-        line: "127.0.0.1 localhost {{ inventory_hostname }}"
-        state: present
-
     - name: Configure Firewall for databases
-      when: inventory_hostname in groups['db']
+      when: inventory_hostname in groups['async']
       block:
         - name: Check if firewalld is active
           ansible.builtin.command: firewall-cmd --state
@@ -38,7 +27,7 @@
           when: firewalld_state.rc == 0
 
     - name: Configure Firewall for databases
-      when: inventory_hostname in groups['db']
+      when: inventory_hostname in groups['async']
       block:
         - name: Download MariaDB repo setup script
           ansible.builtin.get_url:
