@@ -31,34 +31,33 @@ Host 10.211.55.*
 
 This file should be configured for your environment. It should not be checked in, as it is only relevant to you.
 
-You can create separate `.ini` files for each type of cluster, like an `inventory-async.ini` or `inventory-3node.ini` file.
-
 ```sh
+# List the primary DB
 [primary]
-mariadb-primary ansible_host=10.211.55.23 server_id=1
+node1 ansible_host=192.168.41.17 server_id=1
 
+# List the replica DBs
 [replica]
-mariadb-replica ansible_host=10.211.55.24 server_id=2
+node2 ansible_host=192.168.41.19 server_id=2
+node3 ansible_host=192.168.41.21 server_id=3
+
+[async:children]
+primary
+replica
+
+# List the nodes you want in Galera
+[galera]
+node1 ansible_host=192.168.41.17
+node2 ansible_host=192.168.41.19
+node3 ansible_host=192.168.41.21
 
 [all:vars]
 mariadb_version="mariadb-10.11"
-
-[macos:children]
-primary
-replica
-
-[macos:vars]
 ansible_python_interpreter=/usr/bin/python3
-
-[linux:children]
-primary
-replica
-
-[linux:vars]
-ansible_python_interpreter=/usr/bin/python3
-
 mariadb_root_password=root_pass
 replication_password=repl_pass
+galera_cluster_name=dev_cluster
+mariabackup_password=backup_pass
 ```
 
 ## Enterprise Download Token
