@@ -63,11 +63,6 @@
         state: started
         enabled: yes
 
-    # - name: Set MariaDB root password
-    #   ansible.builtin.command: >
-    #     mysqladmin -u root password "{{ mariadb_root_password }}"
-    #   ignore_errors: yes
-
     - name: Configure replication for primary
       when: inventory_hostname in groups['primary']
       block:
@@ -105,6 +100,19 @@
         - name: Display replica status
           ansible.builtin.debug:
             var: replica_status.stdout_lines
+
+    - name: Set root password
+      when: inventory_hostname in groups['primary']
+      block:
+        - name: Set MariaDB root password
+          ansible.builtin.command: >
+            mysqladmin -u root password "{{ mariadb_root_password }}"
+          ignore_errors: yes
+        - name: Create admin user
+          ansible.builtin.command: >
+            mysql -u root -e
+            "CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '{{ mariadb_root_password }}';
+            GRANT ALL ON *.* TO 'root'@'%';"
 
   handlers:
     - name: Restart MariaDB
