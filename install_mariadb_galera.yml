@@ -97,3 +97,13 @@
         state: started
         timeout: 300
       when: inventory_hostname != groups['galera'][0]
+
+    - name: Check Galera Status
+      ansible.builtin.command: >
+        mysql -u root -e
+        "SELECT @@hostname,information_schema.GLOBAL_STATUS.* FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME IN ('wsrep_cluster_status','wsrep_flow_control_sent','wsrep_local_recv_queue_avg','wsrep_cert_deps_distance','wsrep_evs_state', 'wsrep_flow_control_paused','wsrep_flow_control_recv','wsrep_flow_control_sent','wsrep_local_bf_aborts', 'wsrep_local_recv_queue','wsrep_local_recv_queue_avg','wsrep_local_recv_queue_max','wsrep_local_send_queue','wsrep_local_send_queue_max', 'wsrep_local_state_comment','wsrep_ready','wsrep_received','wsrep_replicated','wsrep_cluster_size');SELECT @@hostname,information_schema.GLOBAL_VARIABLES.* FROM information_schema.GLOBAL_VARIABLES WHERE VARIABLE_NAME IN ('wsrep_cluster_address','wsrep_node_address');"
+      register: galera_status
+
+    - name: Display Galera status
+      ansible.builtin.debug:
+        var: galera_status.stdout_lines
