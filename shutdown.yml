@@ -17,5 +17,5 @@
       changed_when: false
 
     - name: Shutdown the server
-      ansible.builtin.shell: "shutdown -h 'Ansible initiated shutdown'"
+      ansible.builtin.shell: "shutdown -h +1 'Ansible initiated shutdown'"
       ignore_errors: true
