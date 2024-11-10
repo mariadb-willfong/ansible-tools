@@ -1,0 +1,38 @@
+---
+- name: Check Status of All Servers
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Ping all hosts
+      ansible.builtin.ping:
+
+    - name: Check uptime
+      ansible.builtin.command:
+        cmd: uptime
+      register: uptime_result
+      changed_when: false
+
+    - name: Display uptime
+      ansible.builtin.debug:
+        var: uptime_result.stdout
+
+    - name: Check top 5 memory consuming processes
+      ansible.builtin.shell: "set -o pipefail && ps aux --sort=-%mem | head -n 6"
+      register: top_mem_processes
+      changed_when: false
+
+    - name: Display top 5 memory consuming processes
+      ansible.builtin.debug:
+        msg: "{{ top_mem_processes.stdout.split('\n') }}"
+
+    - name: Check disk space utilization
+      ansible.builtin.command:
+        cmd: df -h
+      register: disk_space
+      changed_when: false
+
+    - name: Display disk space utilization
+      ansible.builtin.debug:
+        msg: "{{ disk_space.stdout.split('\n') }}"
