@@ -1,8 +1,8 @@
 ---
 - name: Shutdown All Servers
   hosts: all
-  become: yes # This ensures we have root privileges
-  gather_facts: no # We don't need to gather facts for a shutdown
+  become: yes
+  gather_facts: no
 
   vars_prompt:
     - name: "confirmation"
@@ -11,12 +11,14 @@
 
   tasks:
     - name: Confirm shutdown
-      fail:
+      ansible.builtin.fail:
         msg: "Shutdown aborted by user."
       when: confirmation != "yes"
+      changed_when: false
 
     - name: Shutdown the server
-      ansible.builtin.command: /sbin/shutdown -h now "Ansible initiated shutdown"
+      ansible.builtin.command:
+        cmd: shutdown -h +1 "Ansible initiated shutdown"
       async: 0
       poll: 0
       ignore_errors: true
