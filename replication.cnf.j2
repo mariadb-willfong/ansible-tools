@@ -1,5 +1,17 @@
 [mysqld]
-gtid_strict_mode=1
-log-bin
-log-slave-updates
+
+## Settings
 server_id={{ server_id }}
+log_error = /var/log/mariadb_error.log
+log_warnings = 2
+
+## Performance
+innodb_flush_log_at_trx_commit = 0 # We don't need performance on local VM testing
+
+## Replication
+gtid_strict_mode=1
+log-bin=node{{ server_id }}-bin
+log-slave-updates
+binlog_format = ROW
+expire_logs_days = 1
+slave_parallel_threads = 4

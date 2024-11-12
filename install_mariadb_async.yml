@@ -44,6 +44,19 @@
       ansible.builtin.template:
         src: replication.cnf.j2
         dest: /etc/my.cnf
+
+    - name: Touch MariaDB error log
+      ansible.builtin.file:
+        path: /var/log/mariadb_error.log
+        state: touch
+
+    - name: Change ownership of MariaDB error log
+      ansible.builtin.file:
+        path: /var/log/mariadb_error.log
+        owner: mysql
+        group: mysql
+        state: file
+
       notify: Restart MariaDB
 
     - name: Start and enable MariaDB service

@@ -44,9 +44,11 @@
       loop:
         - /var/lib/mysql
         - /etc/my.cnf
+        - /etc/my.cnf.d
+        - /etc/my.cnf.rpmsave
         - /root/.bash_history
+        - /var/log/mariadb_error.log
       ignore_errors: true
-
     - name: Get list of repo files
       ansible.builtin.find:
         paths: /etc/yum.repos.d/
