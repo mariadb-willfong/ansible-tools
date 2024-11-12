@@ -1,0 +1,30 @@
+---
+- name: Sysbench
+  hosts: sysbench
+  become: yes
+
+  tasks:
+    - name: Install sysbench
+      when: inventory_hostname in groups['sysbench']
+      block:
+        - name: Download MariaDB repo setup script
+          ansible.builtin.get_url:
+            url: https://dlm.mariadb.com/3/MariaDB/mariadb_repo_setup
+            dest: /tmp/mariadb_repo_setup
+            mode: "0755"
+        - name: Execute MariaDB repo setup script
+          ansible.builtin.command: /tmp/mariadb_repo_setup --mariadb-server-version={{ mariadb_version }}
+          args:
+            creates: /etc/yum.repos.d/MariaDB.repo
+        - name: Install MariaDB Client
+          ansible.builtin.package:
+            name: MariaDB-client
+            state: present
+        - name: Ensure EPEL repository is installed
+          ansible.builtin.yum:
+            name: epel-release
+            state: present
+        - name: Install sysbench
+          ansible.builtin.yum:
+            name: sysbench
+            state: present
