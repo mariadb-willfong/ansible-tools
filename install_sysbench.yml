@@ -32,23 +32,24 @@
     - name: Print sysbench command
       ansible.builtin.debug:
         msg: |
+          5M records is 1.2GB
           sysbench /usr/share/sysbench/oltp_read_write.lua \
             --db-driver=mysql \
             --mysql-user=root \
             --mysql-password=root_pass \
             --mysql-db=test \
             --mysql-host=node1 \
-            --tables=10 \
-            --table-size=10000000 \
+            --tables=5 \
+            --table-size=5000000 \
             prepare
           sysbench /usr/share/sysbench/oltp_read_write.lua \
             --db-driver=mysql \
             --mysql-user=root \
             --mysql-password=root_pass \
             --mysql-db=test \
-            --mysql-host=node4 \
-            --tables=10 \
-            --table-size=10000000 \
+            --mysql-host=node1 \
+            --tables=5 \
+            --table-size=5000000 \
             --threads=4 \
             --time=60 \
             --report-interval=10 \
