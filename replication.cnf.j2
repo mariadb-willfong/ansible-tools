@@ -6,6 +6,7 @@ log_error = /var/log/mariadb_error.log
 log_warnings = 2
 
 ## Performance
+innodb_buffer_pool_size = 1G
 innodb_flush_log_at_trx_commit = 0 # We don't need performance on local VM testing
 
 ## Replication
