@@ -1,7 +1,7 @@
 ---
 - name: Sysbench
   hosts: sysbench
-  become: yes
+  become: true
 
   tasks:
     - name: Install sysbench
@@ -28,3 +28,28 @@
           ansible.builtin.yum:
             name: sysbench
             state: present
+
+    - name: Print sysbench command
+      ansible.builtin.debug:
+        msg: |
+          sysbench /usr/share/sysbench/oltp_read_write.lua \
+            --db-driver=mysql \
+            --mysql-user=root \
+            --mysql-password=root_pass \
+            --mysql-db=test \
+            --mysql-host=node1 \
+            --tables=10 \
+            --table-size=10000000 \
+            prepare
+          sysbench /usr/share/sysbench/oltp_read_write.lua \
+            --db-driver=mysql \
+            --mysql-user=root \
+            --mysql-password=root_pass \
+            --mysql-db=test \
+            --mysql-host=node4 \
+            --tables=10 \
+            --table-size=10000000 \
+            --threads=4 \
+            --time=60 \
+            --report-interval=10 \
+            run
