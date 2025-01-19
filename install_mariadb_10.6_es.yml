@@ -4,7 +4,7 @@
 - name: Install 10.6 Enterprise Per Documentation
   hosts: db106
   vars:
-    - setup_script_checksum: f8eb9c1b59ccfd979d27e39798d2f2a98447dd29e2149ce92bf606aab4493ad9
+    setup_script_checksum: f8eb9c1b59ccfd979d27e39798d2f2a98447dd29e2149ce92bf606aab4493ad9
   vars_files:
     - enterprise_token.yml
   gather_facts: yes
