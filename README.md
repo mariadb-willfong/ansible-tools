@@ -66,9 +66,11 @@ If you need to use the Enterprise Repo, please include your token into a file ca
 
 Example format:
 
-```
+```yml
 download_token: c48...e42
 ```
+
+You can get your token here: https://id.mariadb.com/account/
 
 ## Scripts Overview
 
