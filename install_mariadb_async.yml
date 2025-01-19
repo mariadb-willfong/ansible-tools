@@ -81,7 +81,7 @@
           ansible.builtin.command: >
             mysql -u root -e
             "CHANGE MASTER TO
-            MASTER_HOST='{{ hostvars[groups['primary'][0]]['ansible_host'] }}',
+            MASTER_HOST='{{ groups['primary'][0] }}',
             MASTER_USER='repl_user',
             MASTER_PASSWORD='{{ replication_password }}',
             MASTER_USE_GTID=current_pos;"
