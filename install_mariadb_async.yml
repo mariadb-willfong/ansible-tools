@@ -70,7 +70,7 @@
       block:
         - name: Create replication user on primary
           ansible.builtin.command: >
-            mysql -u root -e
+            mariadb -u root -e
             "CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY '{{ replication_password }}';
             GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';"
 
@@ -79,7 +79,7 @@
       block:
         - name: Configure replica to use GTID
           ansible.builtin.command: >
-            mysql -u root -e
+            mariadb -u root -e
             "CHANGE MASTER TO
             MASTER_HOST='{{ groups['primary'][0] }}',
             MASTER_USER='repl_user',
@@ -88,7 +88,7 @@
 
         - name: Start replica
           ansible.builtin.command: >
-            mysql -u root -e "START REPLICA;"
+            mariadb -u root -e "START REPLICA;"
 
         - name: Sleep to allow replicas time to connect
           ansible.builtin.pause:
@@ -96,7 +96,7 @@
 
         - name: Check replica status
           ansible.builtin.command: >
-            mysql -u root -e "SHOW REPLICA STATUS\G"
+            mariadb -u root -e "SHOW REPLICA STATUS\G"
           register: replica_status
 
         - name: Display replica status
@@ -108,11 +108,11 @@
       block:
         - name: Set MariaDB root password
           ansible.builtin.command: >
-            mysqladmin -u root password "{{ mariadb_root_password }}"
+            mariadb-admin -u root password "{{ mariadb_root_password }}"
           ignore_errors: yes
         - name: Create admin user
           ansible.builtin.command: >
-            mysql -u root -e
+            mariadb -u root -e
             "CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '{{ mariadb_root_password }}';
             GRANT ALL ON *.* TO 'root'@'%';"
 
