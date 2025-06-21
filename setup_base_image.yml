@@ -102,9 +102,9 @@
         line: "SELINUX=enforcing"
         backup: true
 
-    # - name: Shutdown system
-    #   ansible.builtin.command: /sbin/shutdown -h now
-    #   async: 1
-    #   poll: 0
-    #   failed_when: false
-    #   changed_when: true
+    - name: Shutdown system
+      ansible.builtin.command: /sbin/shutdown -h now
+      async: 1
+      poll: 0
+      failed_when: false
+      changed_when: true
