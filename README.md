@@ -32,9 +32,13 @@ Host 10.211.55.*
 This file should be configured for your environment. It should not be checked in, as it is only relevant to you.
 
 ```sh
+[basevmsetup]
+basevm ansible_host=rocky9base ansible_user=wfong ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' ansible_python_interpreter=/usr/bin/python3
+
+
 # List the primary DB
 [primary]
-node1 ansible_host=192.168.41.17 server_id=1
+node1 ansible_host=node1 ansible_user=node1 ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' server_id=1
 
 # List the replica DBs
 [replica]

@@ -1,2 +1,3 @@
+.ansible/
 *.ini
 enterprise_token.yml

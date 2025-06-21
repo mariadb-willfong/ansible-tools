@@ -1,0 +1,110 @@
+---
+- name: Setup new RHEL 9 VM
+  hosts: rhel9_vms
+  become: true
+  vars_prompt:
+    - name: user_password
+      prompt: "Enter password for SSH user (used for SSH login and sudo)"
+      private: true
+  vars:
+    ansible_ssh_password: "{{ user_password }}"
+    ansible_become_password: "{{ user_password }}"
+
+  tasks:
+    - name: Update system packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest # noqa package-latest
+      register: update_result
+
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name:
+          - tar
+          - curl
+          - gcc
+          - python3-pip
+          - python3-devel
+        state: present
+
+    - name: Create .ssh directory for user
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.ssh"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0700"
+
+    - name: Fetch SSH keys from GitHub
+      ansible.builtin.uri:
+        url: "https://github.com/{{ github_username }}.keys"
+        method: GET
+        return_content: true
+      register: github_keys
+      delegate_to: localhost
+      become: false
+
+    - name: Add SSH keys to authorized_keys
+      ansible.builtin.copy:
+        content: "{{ github_keys.content }}"
+        dest: "/home/{{ ansible_user }}/.ssh/authorized_keys"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+      when: github_keys.content != ""
+
+    - name: Create sudoers file for SSH user
+      ansible.builtin.copy:
+        content: |
+          # Allow {{ ansible_user }} to run all commands without password
+          {{ ansible_user }} ALL=(ALL) NOPASSWD: ALL
+        dest: "/etc/sudoers.d/{{ ansible_user }}"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    - name: Enable and start firewalld service
+      ansible.builtin.systemd:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: Allow SSH through firewall
+      ansible.posix.firewalld:
+        service: ssh
+        permanent: true
+        state: enabled
+        immediate: true
+
+    - name: Allow port 3306/tcp through firewall (MySQL/MariaDB)
+      ansible.posix.firewalld:
+        port: 3306/tcp
+        permanent: true
+        state: enabled
+        immediate: true
+
+    - name: Check current SELinux status
+      ansible.builtin.command: getenforce
+      register: selinux_status
+      changed_when: false
+
+    - name: Set SELinux to enforcing mode
+      ansible.posix.selinux:
+        policy: targeted
+        state: enforcing
+      when: selinux_status.stdout != "Enforcing"
+
+    - name: Ensure SELinux is enforcing after reboot
+      ansible.builtin.lineinfile:
+        path: /etc/selinux/config
+        regexp: "^SELINUX="
+        line: "SELINUX=enforcing"
+        backup: true
+
+    # - name: Shutdown system
+    #   ansible.builtin.command: /sbin/shutdown -h now
+    #   async: 1
+    #   poll: 0
+    #   failed_when: false
+    #   changed_when: true
