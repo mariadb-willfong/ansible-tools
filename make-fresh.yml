@@ -1,19 +1,19 @@
 ---
 - name: Uninstall MariaDB and remove associated files
   hosts: all
-  become: yes
+  become: true
   ignore_unreachable: true
   tasks:
-    - name: Update hostname
-      ansible.builtin.hostname:
-        name: "{{ inventory_hostname }}"
+    # - name: Update hostname
+    #   ansible.builtin.hostname:
+    #     name: "{{ inventory_hostname }}"
 
-    - name: Update /etc/hosts
-      ansible.builtin.lineinfile:
-        path: /etc/hosts
-        regexp: '^127\.0\.0\.1[ \t]+localhost'
-        line: "127.0.0.1 localhost {{ inventory_hostname }}"
-        state: present
+    # - name: Update /etc/hosts
+    #   ansible.builtin.lineinfile:
+    #     path: /etc/hosts
+    #     regexp: '^127\.0\.0\.1[ \t]+localhost'
+    #     line: "127.0.0.1 localhost {{ inventory_hostname }}"
+    #     state: present
 
     - name: Ensure MariaDB service is stopped
       ansible.builtin.systemd:
