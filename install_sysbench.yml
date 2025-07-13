@@ -48,9 +48,10 @@
             --mysql-user=root \
             --mysql-password=root_pass \
             --mysql-db=test \
-            --mysql-host=node1 \
+            --mysql-host=node7 \
+            --mysql-port=4100 \
             --tables=5 \
-            --table-size=5000000 \
+            --table-size=500000 \
             --threads=4 \
             --time=60 \
             --report-interval=10 \
