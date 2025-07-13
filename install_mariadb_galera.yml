@@ -78,6 +78,19 @@
         "CREATE USER IF NOT EXISTS 'mariabackup'@'localhost' IDENTIFIED BY '{{ mariabackup_password }}';
         GRANT RELOAD,PROCESS,LOCK TABLES,REPLICATION CLIENT ON *.* TO 'mariabackup'@'localhost';"
 
+    - name: Create Maxscale Users
+      block:
+        - name: Create monitor user
+          ansible.builtin.command: >
+            mariadb -u root -e
+            "CREATE USER IF NOT EXISTS '{{ maxscale_monitor_username }}'@'%' IDENTIFIED BY '{{ maxscale_monitor_password }}';
+            GRANT ALL ON *.* TO '{{ maxscale_monitor_username }}'@'%';"
+        - name: Create admin user
+          ansible.builtin.command: >
+            mariadb -u root -e
+            "CREATE USER IF NOT EXISTS '{{ maxscale_admin_username }}'@'%' IDENTIFIED BY '{{ maxscale_admin_password }}';
+            GRANT ALL ON *.* TO '{{ maxscale_admin_username }}'@'%';"
+
 - name: Start MariaDB on remaining nodes
   hosts: galera
   serial: 1

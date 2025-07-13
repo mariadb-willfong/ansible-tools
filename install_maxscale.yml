@@ -1,0 +1,58 @@
+---
+- name: Install Maxscale
+  hosts: maxscale
+  become: yes
+
+  tasks:
+    - name: Check if firewalld is active
+      ansible.builtin.command: firewall-cmd --state
+      register: firewalld_state
+      changed_when: false
+      failed_when: false
+
+    - name: Configure firewall for MariaDB if active
+      block:
+        - name: Allow MariaDB through firewall
+          ansible.builtin.firewalld:
+            port: 3306/tcp
+            permanent: yes
+            state: enabled
+          register: firewall_update
+
+        - name: Allow Async through firewall
+          ansible.builtin.firewalld:
+            port: 4100/tcp
+            permanent: yes
+            state: enabled
+          register: firewall_update
+
+        - name: Allow Galera through firewall
+          ansible.builtin.firewalld:
+            port: 4200/tcp
+            permanent: yes
+            state: enabled
+          register: firewall_update
+
+        - name: Reload firewall
+          ansible.builtin.command: firewall-cmd --reload
+          when: firewall_update.changed
+      when: firewalld_state.rc == 0
+
+    - name: Download MariaDB repo setup script
+      ansible.builtin.get_url:
+        url: https://dlm.mariadb.com/3/MariaDB/mariadb_repo_setup
+        dest: /tmp/mariadb_repo_setup
+        mode: "0755"
+
+    - name: Execute MariaDB repo setup script
+      ansible.builtin.command: /tmp/mariadb_repo_setup --mariadb-maxscale-version={{ maxscale_version }}
+      args:
+        creates: /etc/yum.repos.d/MariaDB.repo
+    - name: Install MaxScale
+      ansible.builtin.package:
+        name: maxscale
+        state: present
+    - name: Configure MaxScale
+      ansible.builtin.template:
+        src: maxscale.cnf.j2
+        dest: /etc/maxscale.cnf

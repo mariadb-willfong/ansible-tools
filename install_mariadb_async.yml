@@ -71,8 +71,8 @@
         - name: Create replication user on primary
           ansible.builtin.command: >
             mariadb -u root -e
-            "CREATE USER IF NOT EXISTS 'repl_user'@'%' IDENTIFIED BY '{{ replication_password }}';
-            GRANT REPLICATION SLAVE ON *.* TO 'repl_user'@'%';"
+            "CREATE USER IF NOT EXISTS '{{ mariadb_replication_username }}'@'%' IDENTIFIED BY '{{ mariadb_replication_password }}';
+            GRANT REPLICATION SLAVE ON *.* TO '{{ mariadb_replication_username }}'@'%';"
 
     - name: Configure replication for replica
       when: inventory_hostname in groups['replica']
@@ -82,8 +82,8 @@
             mariadb -u root -e
             "CHANGE MASTER TO
             MASTER_HOST='{{ groups['primary'][0] }}',
-            MASTER_USER='repl_user',
-            MASTER_PASSWORD='{{ replication_password }}',
+            MASTER_USER='{{ mariadb_replication_username }}',
+            MASTER_PASSWORD='{{ mariadb_replication_password }}',
             MASTER_USE_GTID=current_pos;"
 
         - name: Start replica
@@ -115,6 +115,20 @@
             mariadb -u root -e
             "CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '{{ mariadb_root_password }}';
             GRANT ALL ON *.* TO 'root'@'%';"
+
+    - name: Create Maxscale Users
+      when: inventory_hostname in groups['primary']
+      block:
+        - name: Create monitor user
+          ansible.builtin.command: >
+            mariadb -u root -e
+            "CREATE USER IF NOT EXISTS '{{ maxscale_monitor_username }}'@'%' IDENTIFIED BY '{{ maxscale_monitor_password }}';
+            GRANT ALL ON *.* TO '{{ maxscale_monitor_username }}'@'%';"
+        - name: Create admin user
+          ansible.builtin.command: >
+            mariadb -u root -e
+            "CREATE USER IF NOT EXISTS '{{ maxscale_admin_username }}'@'%' IDENTIFIED BY '{{ maxscale_admin_password }}';
+            GRANT ALL ON *.* TO '{{ maxscale_admin_username }}'@'%';"
 
   handlers:
     - name: Restart MariaDB

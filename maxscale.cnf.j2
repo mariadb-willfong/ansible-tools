@@ -1,0 +1,105 @@
+########################
+[maxscale]
+threads=auto
+logdir=/var/log/maxscale
+datadir=/var/lib/maxscale
+admin_port=8989
+log_info = true
+log_debug = true
+
+
+########################
+[node1]
+type=server
+address=node1
+port=3306
+protocol=MariaDBBackend
+
+[node2]
+type=server
+address=node2
+port=3306
+protocol=MariaDBBackend
+
+[node3]
+type=server
+address=node3
+port=3306
+protocol=MariaDBBackend
+
+[node4]
+type=server
+address=node4
+port=3306
+protocol=MariaDBBackend
+
+[node5]
+type=server
+address=node5
+port=3306
+protocol=MariaDBBackend
+
+[node6]
+type=server
+address=node6
+port=3306
+protocol=MariaDBBackend
+
+
+########################
+
+[Async-Monitor]
+type=monitor
+module=mariadbmon
+servers=node1,node2,node3
+user='{{ maxscale_monitor_username }}'
+password='{{ maxscale_monitor_password }}'
+monitor_interval=2s
+cooperative_monitoring_locks=majority_of_all
+failcount=3
+auto_failover=true
+auto_rejoin=true
+replication_user='{{ mariadb_replication_username }}'
+replication_password='{{ mariadb_replication_password }}'
+
+[Galera-Monitor]
+type=monitor
+module=galeramon
+servers=node4,node5,node6
+user='{{ maxscale_monitor_username }}'
+password='{{ maxscale_monitor_password }}'
+monitor_interval=2s
+
+
+########################
+
+[Async-RW-Service]
+type=service
+router=readwritesplit
+servers=node1,node2,node3
+user='{{ maxscale_admin_username }}'
+password='{{ maxscale_admin_password }}'
+enable_root_user = true
+
+[Galera-RW-Service]
+type=service
+router=readwritesplit
+servers=node4,node5,node6
+user='{{ maxscale_admin_username }}'
+password='{{ maxscale_admin_password }}'
+enable_root_user = true
+
+
+########################
+
+[Async-RW-Listener]
+type=listener
+service=Async-RW-Service
+protocol=MariaDBClient
+port=4100
+
+[Galera-RW-Listener]
+type=listener
+service=Galera-RW-Service
+protocol=MariaDBClient
+port=4200

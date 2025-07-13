@@ -22,20 +22,25 @@
       ignore_errors: true
       when: "'mariadb' in ansible_facts.services"
 
-    - name: Remove packages
+    - name: Remove MariaDB, MaxScale, Sysbench, EPEL & clean up deps
       ansible.builtin.yum:
-        name: "{{ item }}"
+        name:
+          - MariaDB-server
+          - MariaDB-client
+          - MariaDB-common
+          - MariaDB-compat
+          - MariaDB-backup
+          - maxscale
+          - maxscale-trial
+          - sysbench
+          - epel-release
+          - galera
         state: absent
-      loop:
-        - MariaDB-server
-        - MariaDB-client
-        - MariaDB-common
-        - MariaDB-compat
-        - MariaDB-backup
-        - sysbench
-        - epel-release
-        - galera
-      ignore_errors: true
+        autoremove: true
+      register: remove_pkgs
+      failed_when:
+        - remove_pkgs.rc != 0
+        - "'No matching Packages to remove' not in (remove_pkgs.stderr | default('') )"
 
     - name: Remove MariaDB data and configuration files
       ansible.builtin.file:
