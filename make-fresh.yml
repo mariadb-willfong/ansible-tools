@@ -35,6 +35,8 @@
           - sysbench
           - epel-release
           - galera
+          - sysstat
+          - perl
         state: absent
         autoremove: true
       register: remove_pkgs
@@ -57,7 +59,7 @@
     - name: Get list of repo files
       ansible.builtin.find:
         paths: /etc/yum.repos.d/
-        patterns: "*.repo"
+        patterns: "*.*"
       register: repo_files
 
     - name: Remove non-rocky repositories

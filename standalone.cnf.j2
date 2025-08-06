@@ -1,0 +1,19 @@
+[mysqld]
+
+## Settings
+log_error = /var/log/mariadb_error.log
+log_warnings = 4
+max_prepared_stmt_count = 65536
+max_connections = 50000
+
+## Performance
+innodb_buffer_pool_size = 1G
+innodb_flush_log_at_trx_commit = 1
+
+## Replication
+gtid_strict_mode=1
+log-bin=node{{ server_id }}-bin
+log-slave-updates
+binlog_format = ROW
+expire_logs_days = 1
+slave_parallel_threads = 4

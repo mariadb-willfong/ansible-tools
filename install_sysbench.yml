@@ -38,21 +38,21 @@
             --mysql-user=root \
             --mysql-password=root_pass \
             --mysql-db=test \
-            --mysql-host=node7 \
-            --mysql-port=4100 \
+            --mysql-host=node10 \
+            --mysql-port=3306 \
             --tables=5 \
-            --table-size=500000 \
+            --table-size=5000000 \
             prepare
           sysbench /usr/share/sysbench/oltp_read_write.lua \
             --db-driver=mysql \
             --mysql-user=root \
             --mysql-password=root_pass \
             --mysql-db=test \
-            --mysql-host=node7 \
-            --mysql-port=4100 \
+            --mysql-host=node10 \
+            --mysql-port=3306 \
             --tables=5 \
-            --table-size=500000 \
-            --threads=4 \
-            --time=60 \
+            --table-size=5000000 \
+            --threads=300 \
+            --time=600 \
             --report-interval=10 \
             run

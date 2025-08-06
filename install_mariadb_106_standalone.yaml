@@ -1,0 +1,99 @@
+---
+- name: Install MariaDB Standalone
+  hosts: standalone-106
+  become: yes
+
+  tasks:
+    - name: Check if firewalld is active
+      ansible.builtin.command: firewall-cmd --state
+      register: firewalld_state
+      changed_when: false
+      failed_when: false
+
+    - name: Configure firewall for MariaDB if active
+      block:
+        - name: Allow MariaDB through firewall
+          ansible.builtin.firewalld:
+            port: 3306/tcp
+            permanent: yes
+            state: enabled
+          register: firewall_update
+
+        - name: Reload firewall
+          ansible.builtin.command: firewall-cmd --reload
+          when: firewall_update.changed
+      when: firewalld_state.rc == 0
+
+    - name: Download MariaDB repo setup script
+      ansible.builtin.get_url:
+        url: https://dlm.mariadb.com/3/MariaDB/mariadb_repo_setup
+        dest: /tmp/mariadb_repo_setup
+        mode: "0755"
+
+    - name: Execute MariaDB repo setup script
+      ansible.builtin.command: /tmp/mariadb_repo_setup --mariadb-server-version={{ mariadb_version }}
+      args:
+        creates: /etc/yum.repos.d/MariaDB.repo
+
+    - name: Install MariaDB Server
+      ansible.builtin.package:
+        name: MariaDB-server
+        state: present
+
+    - name: Configure MariaDB for GTID replication
+      ansible.builtin.template:
+        src: standalone.cnf.j2
+        dest: /etc/my.cnf
+
+    - name: Touch MariaDB error log
+      ansible.builtin.file:
+        path: /var/log/mariadb_error.log
+        state: touch
+
+    - name: Change ownership of MariaDB error log
+      ansible.builtin.file:
+        path: /var/log/mariadb_error.log
+        owner: mysql
+        group: mysql
+        state: file
+
+      notify: Restart MariaDB
+
+    - name: Start and enable MariaDB service
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    - name: Set root password
+      when: inventory_hostname in groups['primary']
+      block:
+        - name: Set MariaDB root password
+          ansible.builtin.command: >
+            mariadb-admin -u root password "{{ mariadb_root_password }}"
+          ignore_errors: yes
+        - name: Create admin user
+          ansible.builtin.command: >
+            mariadb -u root -e
+            "CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '{{ mariadb_root_password }}';
+            GRANT ALL ON *.* TO 'root'@'%';"
+
+    - name: Create Maxscale Users
+      when: inventory_hostname in groups['primary']
+      block:
+        - name: Create monitor user
+          ansible.builtin.command: >
+            mariadb -u root -e
+            "CREATE USER IF NOT EXISTS '{{ maxscale_monitor_username }}'@'%' IDENTIFIED BY '{{ maxscale_monitor_password }}';
+            GRANT ALL ON *.* TO '{{ maxscale_monitor_username }}'@'%';"
+        - name: Create admin user
+          ansible.builtin.command: >
+            mariadb -u root -e
+            "CREATE USER IF NOT EXISTS '{{ maxscale_admin_username }}'@'%' IDENTIFIED BY '{{ maxscale_admin_password }}';
+            GRANT ALL ON *.* TO '{{ maxscale_admin_username }}'@'%';"
+
+  handlers:
+    - name: Restart MariaDB
+      ansible.builtin.systemd:
+        name: mariadb
+        state: restarted

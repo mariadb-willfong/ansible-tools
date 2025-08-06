@@ -1,0 +1,68 @@
+---
+- name: Apply best-practice kernel and ulimit settings to RHEL 9
+  hosts: all
+  become: true
+
+  vars:
+    nofile_limit: 65535
+    nproc_limit: 65535
+    sysctl_settings:
+      fs.file-max: 2097152
+      vm.swappiness: 10
+      net.core.somaxconn: 1024
+      net.ipv4.ip_local_port_range: "1024 65535"
+      net.ipv4.tcp_tw_reuse: 1
+
+  tasks:
+    - name: Set system-wide limits in /etc/security/limits.d/99-custom.conf
+      ansible.builtin.copy:
+        dest: /etc/security/limits.d/99-custom.conf
+        content: |
+          * soft nofile {{ nofile_limit }}
+          * hard nofile {{ nofile_limit }}
+          * soft nproc {{ nproc_limit }}
+          * hard nproc {{ nproc_limit }}
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure pam_limits is enabled for login shells on RHEL
+      ansible.builtin.lineinfile:
+        path: "{{ item }}"
+        line: "session required pam_limits.so"
+        regexp: "^session\\s+required\\s+pam_limits\\.so"
+        state: present
+      loop:
+        - /etc/pam.d/login
+        - /etc/pam.d/sshd
+        - /etc/pam.d/su
+        - /etc/pam.d/system-auth
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Set systemd user limits in /etc/systemd/user.conf
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/user.conf
+        regexp: "^#?DefaultLimitNOFILE="
+        line: "DefaultLimitNOFILE={{ nofile_limit }}"
+        state: present
+
+    - name: Set systemd system limits in /etc/systemd/system.conf
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/system.conf
+        regexp: "^#?DefaultLimitNOFILE="
+        line: "DefaultLimitNOFILE={{ nofile_limit }}"
+        state: present
+
+    - name: Apply sysctl kernel parameters
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-custom.conf
+        content: |
+          {% for key, value in sysctl_settings.items() %}
+          {{ key }} = {{ value }}
+          {% endfor %}
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Reload all sysctl settings from disk
+      ansible.builtin.command: sysctl --system
